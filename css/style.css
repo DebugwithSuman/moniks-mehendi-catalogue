@@ -201,8 +201,8 @@ body {
     background-image: url('../images/baby-shower/baby-1.jpg');
 }
 
-.category-image.party {
-    background-image: url('../images/party/party-1.jpg');
+.category-image.floral {
+    background-image: url('../images/floral/floral-1.jpg');
 }
 
 .category-image.feet {
@@ -519,4 +519,11 @@ footer p {
         width: 100%;
         text-align: center;
     }
+}
+#back-to-categories,
+#back-to-gallery {
+    font-size: 18px;
+    padding: 14px 24px;
+    min-height: 48px;
+    border-radius: 10px;
 }

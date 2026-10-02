@@ -8,7 +8,7 @@ const categoryNames = {
     simple: "Simple / Minimal",
     couple: "Engagement & Couple",
     "baby-shower": "Baby Shower",
-    party: "Party / Festival",
+    floral: "Floral Designs",
     feet: "Feet Mehendi",
     custom: "Custom Designs"
 };
@@ -20,7 +20,7 @@ const designs = {
     simple: [],
     couple: [],
     "baby-shower": [],
-    party: [],
+    floral: [],
     feet: [],
     custom: []
 };
@@ -243,7 +243,7 @@ document.querySelectorAll(".category-card").forEach(card => {
     });
 });
 
-// Back to categories
+//  categories
 const backToCategories = document.querySelector("#back-to-categories");
 
 if (backToCategories) {
