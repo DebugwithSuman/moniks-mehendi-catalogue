@@ -173,7 +173,7 @@ button:disabled { opacity: .6; cursor: not-allowed; }
       <option value="simple">Simple / Minimal</option>
       <option value="couple">Engagement &amp; Couple</option>
       <option value="baby-shower">Baby Shower</option>
-      <option value="party">Party / Festival</option>
+      <option value="floral">Floral Designs</option>
       <option value="feet">Feet Mehendi</option>
       <option value="custom">Custom Designs</option>
     </select>
@@ -282,7 +282,7 @@ try {
 // CATEGORIES AND DESIGN IDS
 const categories = [
   "bridal", "arabic", "simple", "couple",
-  "baby-shower", "party", "feet", "custom"
+  "baby-shower", "floral", "feet", "custom"
 ];
 
 const prefixes = {
@@ -291,14 +291,15 @@ const prefixes = {
   simple: "S",
   couple: "C",
   "baby-shower": "BS",
-  party: "P",
-  feet: "F",
+  floral: "F",
+  feet: "Fe",
   custom: "X"
 };
 
 const catalogue = Object.fromEntries(
   categories.map(category => [category, []])
 );
+
 
 let selectedFiles = [];
 
@@ -474,117 +475,7 @@ photoFiles.addEventListener("change", () => {
   setStatus(selectedFiles.length + " photo(s) selected.");
 });
 
-// UPLOAD ONE PHOTO
-async function uploadOne(file, category, designId) {
-  const extension =
-    file.name.split(".").pop().toLowerCase();
 
-  if (!["jpg", "jpeg", "png", "webp"].includes(extension)) {
-    throw new Error("Unsupported file type: " + file.name);
-  }
-
-  if (file.size > 5 * 1024 * 1024) {
-    throw new Error(file.name + " is larger than 5 MB.");
-  }
-
-  const path =
-    category + "/" + designId + "-" +
-    crypto.randomUUID() + "." + extension;
-
-  const { error: uploadError } = await db.storage
-    .from(BUCKET_NAME)
-    .upload(path, file, {
-      cacheControl: "3600",
-      upsert: false,
-      contentType: file.type
-    });
-
-  if (uploadError) throw uploadError;
-
-  const { data: publicData } = db.storage
-    .from(BUCKET_NAME)
-    .getPublicUrl(path);
-
-  const imageUrl = publicData.publicUrl;
-
-  const { error: insertError } = await db
-    .from("designs")
-    .insert({
-      design_id: designId,
-      category: category,
-      image_url: imageUrl
-    });
-
-  if (insertError) {
-    await db.storage.from(BUCKET_NAME).remove([path]);
-    throw insertError;
-  }
-
-  return {
-    id: designId,
-    image: imageUrl
-  };
-}
-
-// UPLOAD BUTTON
-uploadBtn.addEventListener("click", async () => {
-  if (!db) {
-    setStatus("Supabase is not connected.");
-    return;
-  }
-
-  if (!selectedFiles.length) {
-    setStatus("Please select at least one photo.");
-    return;
-  }
-
-  uploadBtn.disabled = true;
-
-  let successCount = 0;
-  const errors = [];
-  const category = categorySelect.value;
-
-  try {
-    for (const file of selectedFiles) {
-      try {
-        const existingIds = await getAllExistingIds();
-        const designId =
-          makeDesignId(category, existingIds);
-
-        setStatus(
-          "Uploading " + file.name + " as " + designId + "..."
-        );
-
-        const saved =
-          await uploadOne(file, category, designId);
-
-        catalogue[category].push(saved);
-        successCount++;
-      } catch (error) {
-        errors.push(
-          file.name + ": " + getErrorMessage(error)
-        );
-      }
-    }
-
-    photoFiles.value = "";
-    selectedFiles = [];
-    photoPreviews.innerHTML = "";
-
-    await loadOnlineDesigns();
-
-    let message =
-      successCount + " photo(s) uploaded successfully.";
-
-    if (errors.length) {
-      message += " Failed: " + errors.join(" | ");
-    }
-
-    setStatus(message);
-  } finally {
-    uploadBtn.disabled = false;
-  }
-});
 
 // LOAD ONLINE DESIGNS
 async function loadOnlineDesigns() {
@@ -606,8 +497,7 @@ async function loadOnlineDesigns() {
     onlineList.innerHTML = "";
 
     if (!data || data.length === 0) {
-      onlineList.textContent =
-        "No online designs yet. Upload your first photo.";
+      onlineList.textContent = "No online designs yet.";
       return;
     }
 
@@ -624,17 +514,84 @@ async function loadOnlineDesigns() {
       details.textContent =
         design.category + " | " + design.design_id;
 
-      card.append(image, details);
+      const deleteBtn = document.createElement("button");
+      deleteBtn.textContent = "Delete Photo";
+      deleteBtn.className = "remove-btn";
+      deleteBtn.type = "button";
+
+      deleteBtn.addEventListener("click", async () => {
+        if (!confirm(
+          "Permanently delete " + design.design_id + "?"
+        )) return;
+
+        deleteBtn.disabled = true;
+        deleteBtn.textContent = "Deleting...";
+
+        try {
+          // Identify the file path in Storage
+          const url = new URL(design.image_url);
+          const pathParts = url.pathname.split("/");
+          const publicIndex = pathParts.indexOf("public");
+
+          if (
+            publicIndex === -1 ||
+            decodeURIComponent(pathParts[publicIndex + 1]) !== BUCKET_NAME
+          ) {
+            throw new Error("Could not identify the Storage file.");
+          }
+
+          const storagePath = decodeURIComponent(
+            pathParts.slice(publicIndex + 2).join("/")
+          );
+
+          // Delete database row and verify it
+          const { data: deletedRows, error: dbError } = await db
+            .from("designs")
+            .delete()
+            .eq("id", design.id)
+            .select("id");
+
+          if (dbError) throw dbError;
+
+          if (!deletedRows || deletedRows.length === 0) {
+            throw new Error(
+              "Database row was not deleted. Check the DELETE policy for designs."
+            );
+          }
+
+          // Delete the image from Storage
+          const { data: removedFiles, error: storageError } =
+            await db.storage
+              .from(BUCKET_NAME)
+              .remove([storagePath]);
+
+          if (storageError) {
+            alert(
+              "The database record was deleted, but the image file may remain in Storage. " +
+              storageError.message
+            );
+          } else {
+            alert("Database record deleted. Storage removal requested.");
+          }
+
+          await loadOnlineDesigns();
+
+        } catch (error) {
+          alert("Delete failed: " + getErrorMessage(error));
+          deleteBtn.disabled = false;
+          deleteBtn.textContent = "Delete Photo";
+        }
+      });
+
+      card.append(image, details, deleteBtn);
       onlineList.appendChild(card);
     });
+
   } catch (error) {
     onlineList.textContent =
       "Could not load designs: " + getErrorMessage(error);
   }
 }
-
-document.querySelector("#refreshBtn")
-  .addEventListener("click", loadOnlineDesigns);
 
 // IMPORT LOCAL CATALOGUE
 catalogueFile.addEventListener("change", async () => {
