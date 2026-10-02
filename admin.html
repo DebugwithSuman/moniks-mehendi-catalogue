@@ -1,0 +1,760 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Moniks Mehndi Art | Admin</title>
+<style>
+* { box-sizing: border-box; }
+body {
+  font-family: Arial, sans-serif;
+  background: #fffaf3;
+  color: #68432f;
+  padding: 20px;
+  margin: 0;
+}
+.container, .login-box {
+  max-width: 850px;
+  margin: 20px auto;
+  padding: 25px;
+  background: white;
+  border-radius: 15px;
+  box-shadow: 0 4px 20px #68432f18;
+}
+.login-box { max-width: 420px; }
+h1, h2, h3 { text-align: center; }
+label {
+  display: block;
+  margin: 16px 0 7px;
+  font-weight: bold;
+}
+input, select {
+  width: 100%;
+  padding: 12px;
+  border: 1px solid #d7c2ad;
+  border-radius: 8px;
+  font: inherit;
+  background: white;
+  color: #68432f;
+}
+button {
+  padding: 12px 18px;
+  border: none;
+  border-radius: 25px;
+  background: #80583f;
+  color: white;
+  cursor: pointer;
+  margin: 8px 5px 8px 0;
+  font: inherit;
+}
+button:hover { background: #68432f; }
+button:disabled { opacity: .6; cursor: not-allowed; }
+.note {
+  font-size: 14px;
+  line-height: 1.5;
+  color: #806b5b;
+}
+.status {
+  padding: 12px;
+  margin: 12px 0;
+  background: #f5ede3;
+  border-radius: 8px;
+  font-size: 14px;
+  line-height: 1.5;
+  overflow-wrap: anywhere;
+}
+.design-item {
+  padding: 12px;
+  border: 1px solid #e5d6c6;
+  border-radius: 10px;
+  margin: 10px 0;
+  overflow-wrap: anywhere;
+}
+.preview-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
+  gap: 12px;
+  margin: 15px 0;
+}
+.preview-card {
+  border: 1px solid #e5d6c6;
+  border-radius: 10px;
+  padding: 8px;
+  overflow: hidden;
+}
+.preview-card img {
+  width: 100%;
+  aspect-ratio: 1;
+  object-fit: cover;
+  border-radius: 7px;
+}
+.preview-card p {
+  font-size: 12px;
+  overflow-wrap: anywhere;
+}
+.design-preview {
+  width: 100px;
+  height: 100px;
+  object-fit: cover;
+  border-radius: 8px;
+  display: block;
+  margin-bottom: 10px;
+  border: 1px solid #e5d6c6;
+}
+.section {
+  border-top: 1px solid #e5d6c6;
+  padding-top: 20px;
+  margin-top: 25px;
+}
+.remove-btn { background: #a33b32; }
+.logout-btn { background: #a33b32; }
+@media(max-width:600px) {
+  body { padding: 10px; }
+  .container, .login-box {
+    padding: 16px;
+    margin: 10px auto;
+  }
+}
+</style>
+</head>
+<body>
+
+<!-- LOGIN -->
+<div class="login-box" id="loginSection">
+  <h2>Moniks Mehndi Art</h2>
+  <h3>Admin Login</h3>
+
+  <label for="adminEmail">Email</label>
+  <input
+    type="email"
+    id="adminEmail"
+    placeholder="Enter admin email"
+    autocomplete="username"
+  >
+
+  <label for="adminPassword">Password</label>
+  <input
+    type="password"
+    id="adminPassword"
+    placeholder="Enter password"
+    autocomplete="current-password"
+  >
+
+  <button type="button" id="loginBtn">Login</button>
+  <p id="loginMessage" class="note" role="status"></p>
+</div>
+
+<!-- ADMIN PANEL -->
+<div class="container" id="adminPanel" style="display:none;">
+  <h1>Moniks Mehndi Art</h1>
+  <h2>Design Manager</h2>
+
+  <p class="note">
+    Upload mehendi photos, manage online designs, and import or download
+    your local catalogue.
+  </p>
+
+  <button type="button" id="logoutBtn" class="logout-btn">
+    Logout
+  </button>
+
+  <div id="status" class="status" role="status">
+    Connecting to Supabase...
+  </div>
+
+  <div class="section">
+    <h3>Upload New Designs</h3>
+
+    <label for="category">Select Category</label>
+    <select id="category">
+      <option value="bridal">Bridal Mehendi</option>
+      <option value="arabic">Arabic Mehendi</option>
+      <option value="simple">Simple / Minimal</option>
+      <option value="couple">Engagement &amp; Couple</option>
+      <option value="baby-shower">Baby Shower</option>
+      <option value="party">Party / Festival</option>
+      <option value="feet">Feet Mehendi</option>
+      <option value="custom">Custom Designs</option>
+    </select>
+
+    <label for="photoFiles">Choose Mehendi Photos</label>
+    <input
+      type="file"
+      id="photoFiles"
+      accept="image/jpeg,image/png,image/webp"
+      multiple
+    >
+
+    <p class="note">
+      JPG, PNG and WebP images are supported.
+      Maximum 5 MB per photo.
+    </p>
+
+    <div id="photoPreviews" class="preview-grid"></div>
+
+    <button type="button" id="uploadBtn">
+      Upload Selected Photos
+    </button>
+  </div>
+
+  <div class="section">
+    <h3>Online Designs</h3>
+    <button type="button" id="refreshBtn">
+      Refresh Online Designs
+    </button>
+    <div id="onlineList"></div>
+  </div>
+
+  <div class="section">
+    <h3>Local Catalogue</h3>
+
+    <label for="catalogueFile">
+      Import existing catalogue.json
+    </label>
+    <input
+      type="file"
+      id="catalogueFile"
+      accept=".json,application/json"
+    >
+
+    <div id="localList"></div>
+
+    <button type="button" id="downloadBtn">
+      Download Local Catalogue
+    </button>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script>
+"use strict";
+
+// SUPABASE CONFIGURATION
+const SUPABASE_URL =
+  "https://fcpdgxxrbrmuzepmxsps.supabase.co";
+
+// Use your existing Supabase publishable key here.
+const SUPABASE_KEY = "sb_publishable_tiZWv6wYSgB8GmBumnzLMA_mAlVY0Os";
+
+const BUCKET_NAME = "Mehendi designs";
+
+// ELEMENTS
+const loginSection = document.querySelector("#loginSection");
+const adminPanel = document.querySelector("#adminPanel");
+const loginBtn = document.querySelector("#loginBtn");
+const logoutBtn = document.querySelector("#logoutBtn");
+const loginMessage = document.querySelector("#loginMessage");
+
+const statusBox = document.querySelector("#status");
+const onlineList = document.querySelector("#onlineList");
+const localList = document.querySelector("#localList");
+const photoFiles = document.querySelector("#photoFiles");
+const photoPreviews = document.querySelector("#photoPreviews");
+const uploadBtn = document.querySelector("#uploadBtn");
+const categorySelect = document.querySelector("#category");
+const catalogueFile = document.querySelector("#catalogueFile");
+
+let db = null;
+
+// INITIALIZE SUPABASE
+try {
+  if (!window.supabase || !window.supabase.createClient) {
+    throw new Error("Supabase library did not load.");
+  }
+
+  if (
+    !SUPABASE_URL.startsWith("https://") ||
+    !SUPABASE_KEY.startsWith("sb_publishable_")
+  ) {
+    throw new Error("Check your Supabase URL and publishable key.");
+  }
+
+  db = window.supabase.createClient(
+    SUPABASE_URL,
+    SUPABASE_KEY
+  );
+} catch (error) {
+  loginMessage.textContent =
+    "Connection setup error: " + error.message;
+}
+
+// CATEGORIES AND DESIGN IDS
+const categories = [
+  "bridal", "arabic", "simple", "couple",
+  "baby-shower", "party", "feet", "custom"
+];
+
+const prefixes = {
+  bridal: "B",
+  arabic: "A",
+  simple: "S",
+  couple: "C",
+  "baby-shower": "BS",
+  party: "P",
+  feet: "F",
+  custom: "X"
+};
+
+const catalogue = Object.fromEntries(
+  categories.map(category => [category, []])
+);
+
+let selectedFiles = [];
+
+// STATUS
+function setStatus(message) {
+  statusBox.textContent = message;
+}
+
+function getErrorMessage(error) {
+  return error?.message || String(error);
+}
+
+// SHOW/HIDE PANELS
+function showAdmin() {
+  loginSection.style.display = "none";
+  adminPanel.style.display = "block";
+}
+
+function showLogin() {
+  loginSection.style.display = "block";
+  adminPanel.style.display = "none";
+}
+
+// CHECK SESSION
+async function checkLogin() {
+  if (!db) return;
+
+  const { data, error } = await db.auth.getSession();
+
+  if (error) {
+    showLogin();
+    loginMessage.textContent = error.message;
+    return;
+  }
+
+  if (data.session) {
+    showAdmin();
+    await loadOnlineDesigns();
+    setStatus("You are logged in.");
+  } else {
+    showLogin();
+  }
+}
+
+// LOGIN
+loginBtn.addEventListener("click", async () => {
+  if (!db) {
+    loginMessage.textContent = "Supabase is not connected.";
+    return;
+  }
+
+  const email =
+    document.querySelector("#adminEmail").value.trim();
+
+  const password =
+    document.querySelector("#adminPassword").value;
+
+  if (!email || !password) {
+    loginMessage.textContent =
+      "Please enter your email and password.";
+    return;
+  }
+
+  loginBtn.disabled = true;
+  loginMessage.textContent = "Logging in...";
+
+  try {
+    const { error } = await db.auth.signInWithPassword({
+      email,
+      password
+    });
+
+    if (error) throw error;
+
+    loginMessage.textContent = "";
+    showAdmin();
+    setStatus("Login successful.");
+
+    await loadOnlineDesigns();
+  } catch (error) {
+    loginMessage.textContent =
+      "Login failed: " + getErrorMessage(error);
+  } finally {
+    loginBtn.disabled = false;
+  }
+});
+
+// LOGOUT
+logoutBtn.addEventListener("click", async () => {
+  if (!db) return;
+
+  logoutBtn.disabled = true;
+
+  try {
+    const { error } = await db.auth.signOut();
+
+    if (error) throw error;
+
+    showLogin();
+    loginMessage.textContent = "You have logged out.";
+    document.querySelector("#adminPassword").value = "";
+  } catch (error) {
+    setStatus("Logout failed: " + getErrorMessage(error));
+  } finally {
+    logoutBtn.disabled = false;
+  }
+});
+
+// AUTOMATIC DESIGN IDS
+function makeDesignId(category, existingIds) {
+  const prefix = prefixes[category];
+  let largest = 0;
+
+  existingIds.forEach(id => {
+    const match = String(id).match(
+      new RegExp("^" + prefix + "(\\d+)$", "i")
+    );
+
+    if (match) {
+      largest = Math.max(largest, Number(match[1]));
+    }
+  });
+
+  return prefix + String(largest + 1).padStart(3, "0");
+}
+
+async function getAllExistingIds() {
+  const ids = Object.values(catalogue)
+    .flat()
+    .map(item => item.id)
+    .filter(Boolean);
+
+  const { data, error } = await db
+    .from("designs")
+    .select("design_id");
+
+  if (error) throw error;
+
+  (data || []).forEach(row => {
+    if (row.design_id) ids.push(row.design_id);
+  });
+
+  return ids;
+}
+
+// PHOTO PREVIEWS
+photoFiles.addEventListener("change", () => {
+  selectedFiles = Array.from(photoFiles.files || []);
+  photoPreviews.innerHTML = "";
+
+  selectedFiles.forEach(file => {
+    const card = document.createElement("div");
+    card.className = "preview-card";
+
+    const image = document.createElement("img");
+    const url = URL.createObjectURL(file);
+
+    image.src = url;
+    image.alt = file.name;
+    image.onload = () => URL.revokeObjectURL(url);
+
+    const name = document.createElement("p");
+    name.textContent = file.name;
+
+    const size = document.createElement("p");
+    size.textContent =
+      (file.size / (1024 * 1024)).toFixed(2) + " MB";
+
+    card.append(image, name, size);
+    photoPreviews.appendChild(card);
+  });
+
+  setStatus(selectedFiles.length + " photo(s) selected.");
+});
+
+// UPLOAD ONE PHOTO
+async function uploadOne(file, category, designId) {
+  const extension =
+    file.name.split(".").pop().toLowerCase();
+
+  if (!["jpg", "jpeg", "png", "webp"].includes(extension)) {
+    throw new Error("Unsupported file type: " + file.name);
+  }
+
+  if (file.size > 5 * 1024 * 1024) {
+    throw new Error(file.name + " is larger than 5 MB.");
+  }
+
+  const path =
+    category + "/" + designId + "-" +
+    crypto.randomUUID() + "." + extension;
+
+  const { error: uploadError } = await db.storage
+    .from(BUCKET_NAME)
+    .upload(path, file, {
+      cacheControl: "3600",
+      upsert: false,
+      contentType: file.type
+    });
+
+  if (uploadError) throw uploadError;
+
+  const { data: publicData } = db.storage
+    .from(BUCKET_NAME)
+    .getPublicUrl(path);
+
+  const imageUrl = publicData.publicUrl;
+
+  const { error: insertError } = await db
+    .from("designs")
+    .insert({
+      design_id: designId,
+      category: category,
+      image_url: imageUrl
+    });
+
+  if (insertError) {
+    await db.storage.from(BUCKET_NAME).remove([path]);
+    throw insertError;
+  }
+
+  return {
+    id: designId,
+    image: imageUrl
+  };
+}
+
+// UPLOAD BUTTON
+uploadBtn.addEventListener("click", async () => {
+  if (!db) {
+    setStatus("Supabase is not connected.");
+    return;
+  }
+
+  if (!selectedFiles.length) {
+    setStatus("Please select at least one photo.");
+    return;
+  }
+
+  uploadBtn.disabled = true;
+
+  let successCount = 0;
+  const errors = [];
+  const category = categorySelect.value;
+
+  try {
+    for (const file of selectedFiles) {
+      try {
+        const existingIds = await getAllExistingIds();
+        const designId =
+          makeDesignId(category, existingIds);
+
+        setStatus(
+          "Uploading " + file.name + " as " + designId + "..."
+        );
+
+        const saved =
+          await uploadOne(file, category, designId);
+
+        catalogue[category].push(saved);
+        successCount++;
+      } catch (error) {
+        errors.push(
+          file.name + ": " + getErrorMessage(error)
+        );
+      }
+    }
+
+    photoFiles.value = "";
+    selectedFiles = [];
+    photoPreviews.innerHTML = "";
+
+    await loadOnlineDesigns();
+
+    let message =
+      successCount + " photo(s) uploaded successfully.";
+
+    if (errors.length) {
+      message += " Failed: " + errors.join(" | ");
+    }
+
+    setStatus(message);
+  } finally {
+    uploadBtn.disabled = false;
+  }
+});
+
+// LOAD ONLINE DESIGNS
+async function loadOnlineDesigns() {
+  if (!db) {
+    onlineList.textContent = "Supabase is not connected.";
+    return;
+  }
+
+  onlineList.textContent = "Loading designs...";
+
+  try {
+    const { data, error } = await db
+      .from("designs")
+      .select("id, design_id, category, image_url, created_at")
+      .order("id", { ascending: false });
+
+    if (error) throw error;
+
+    onlineList.innerHTML = "";
+
+    if (!data || data.length === 0) {
+      onlineList.textContent =
+        "No online designs yet. Upload your first photo.";
+      return;
+    }
+
+    data.forEach(design => {
+      const card = document.createElement("div");
+      card.className = "design-item";
+
+      const image = document.createElement("img");
+      image.className = "design-preview";
+      image.src = design.image_url;
+      image.alt = design.design_id;
+
+      const details = document.createElement("p");
+      details.textContent =
+        design.category + " | " + design.design_id;
+
+      card.append(image, details);
+      onlineList.appendChild(card);
+    });
+  } catch (error) {
+    onlineList.textContent =
+      "Could not load designs: " + getErrorMessage(error);
+  }
+}
+
+document.querySelector("#refreshBtn")
+  .addEventListener("click", loadOnlineDesigns);
+
+// IMPORT LOCAL CATALOGUE
+catalogueFile.addEventListener("change", async () => {
+  const file = catalogueFile.files[0];
+  if (!file) return;
+
+  try {
+    const imported = JSON.parse(await file.text());
+
+    if (
+      !imported ||
+      typeof imported !== "object" ||
+      Array.isArray(imported)
+    ) {
+      throw new Error("Invalid catalogue format.");
+    }
+
+    for (const key of Object.keys(imported)) {
+      if (!categories.includes(key) ||
+          !Array.isArray(imported[key])) {
+        throw new Error("Invalid category or list: " + key);
+      }
+
+      for (const design of imported[key]) {
+        if (
+          !design ||
+          typeof design.id !== "string" ||
+          typeof design.image !== "string"
+        ) {
+          throw new Error("Invalid design in " + key);
+        }
+      }
+    }
+
+    let added = 0;
+
+    for (const key of categories) {
+      for (const design of imported[key] || []) {
+        const exists = Object.values(catalogue)
+          .flat()
+          .some(
+            item =>
+              item.id.toLowerCase() ===
+              design.id.toLowerCase()
+          );
+
+        if (!exists) {
+          catalogue[key].push(design);
+          added++;
+        }
+      }
+    }
+
+    renderLocalCatalogue();
+    setStatus("Imported " + added + " local design(s).");
+  } catch (error) {
+    setStatus("Import failed: " + getErrorMessage(error));
+  }
+});
+
+// DISPLAY LOCAL CATALOGUE
+function renderLocalCatalogue() {
+  localList.innerHTML = "";
+
+  categories.forEach(category => {
+    catalogue[category].forEach((design, index) => {
+      const card = document.createElement("div");
+      card.className = "design-item";
+
+      const details = document.createElement("p");
+      details.textContent =
+        category + " | " + design.id + " | " + design.image;
+
+      const remove = document.createElement("button");
+      remove.className = "remove-btn";
+      remove.textContent = "Remove";
+
+      remove.addEventListener("click", () => {
+        catalogue[category].splice(index, 1);
+        renderLocalCatalogue();
+        setStatus(
+          "Removed " + design.id + " from local catalogue."
+        );
+      });
+
+      card.append(details, remove);
+      localList.appendChild(card);
+    });
+  });
+}
+
+// DOWNLOAD LOCAL CATALOGUE
+document.querySelector("#downloadBtn")
+  .addEventListener("click", () => {
+    const blob = new Blob(
+      [JSON.stringify(catalogue, null, 4)],
+      { type: "application/json" }
+    );
+
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+
+    link.href = url;
+    link.download = "catalogue.json";
+    link.click();
+
+    URL.revokeObjectURL(url);
+    setStatus("Local catalogue download started.");
+  });
+
+// INITIALIZE
+if (db) {
+  checkLogin();
+
+  db.auth.onAuthStateChange((event, session) => {
+    if (event === "SIGNED_OUT" || !session) {
+      showLogin();
+    }
+  });
+}
+</script>
+</body>
+</html>
